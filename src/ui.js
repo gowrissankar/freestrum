@@ -60,11 +60,31 @@ const gridConfig = {
     gap: 12,
 
     xPercent: 0.05,
-    yPercent: 0.10,
+    yPercent: 0.65,
     widthPercent: 0.40,
-    heightPercent: 0.30
+    heightPercent: 0.22
+
 };
 
+export function drawCapoLabel(ctx, boxes) {
+    if (boxes.length === 0) return;
+
+    const lastBox = boxes[boxes.length - 1];
+
+    const gridBottom =
+        lastBox.y + lastBox.h;
+
+    ctx.fillStyle = "white";
+    ctx.font = "22px sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+
+    ctx.fillText(
+        `Capo: ${appState.capo}`,
+        boxes[0].x,
+        gridBottom + 20
+    );
+}
 
 //========= UI label ==========
 function getChordLabel(chord, capo) {
@@ -216,13 +236,11 @@ export function renderbox(
 
     ctx.restore();
 
-    const boxes =
-        generateChordBoxes(canvas);
+    const boxes = generateChordBoxes(canvas);
 
-    drawChordGrid(
-        ctx,
-        boxes
-    );
+    drawChordGrid(ctx, boxes);
+    drawCapoLabel(ctx, boxes);
+
 }
 
 
