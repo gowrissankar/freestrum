@@ -3,7 +3,7 @@ console.log('FreeStrum Initialized!');
 
 import './style.css'
 import { setupCamera } from './tracking';
-import { renderFrame, setupCanvas } from './ui';
+import { renderbox, setupCanvas } from './ui';
 
 async function init() {
     //setup cam 
@@ -15,7 +15,11 @@ async function init() {
     console.log("canvas ready ", canvas);
 
     function animate() {
-        renderFrame(video, ctx, canvas);
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+        }
+        renderbox(video, ctx, canvas);
         requestAnimationFrame(animate);
     }
     animate()
