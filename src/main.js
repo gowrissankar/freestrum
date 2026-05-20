@@ -3,13 +3,26 @@ console.log('FreeStrum Initialized!');
 
 import './style.css'
 import { setupCamera } from './tracking';
+import { renderFrame, setupCanvas } from './ui';
 
-async function initialise_cam() {
+async function init() {
     //setup cam 
     const video = await setupCamera();
     console.log("cam reay ", video)
 
+    //setup canvas 
+    const { canvas, ctx } = setupCanvas(video);
+    console.log("canvas ready ", canvas);
+
+    function animate() {
+        renderFrame(video, ctx, canvas);
+        requestAnimationFrame(animate);
+    }
+    animate()
 }
+
+init();
+
 
 
 
