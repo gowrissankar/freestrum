@@ -4,15 +4,16 @@ console.log('FreeStrum Initialized!');
 import './style.css'
 import { setupCamera, detectHands, setupHandTracking } from './tracking';
 import { renderbox, setupCanvas, generateChordBoxes, getBoxAtPosition, drawLandmarks } from './ui';
-import { startSustainedChord, playFadedChord, killAll } from "./audio";
+import { startIndefiniteSustain, playFadedChord, killAll } from "./audio";
 import { appState, chords, NOTE_NAMES } from "./state";
 import { CONFIG } from "./constants";
+import * as Tone from "tone";
 
 function getFistState(handLandmarks) {
     const palm = handLandmarks[0];
     const tips = [8, 12, 16, 20];
     let totalDist = 0;
-    
+
     for (let tip of tips) {
         const dx = handLandmarks[tip].x - palm.x;
         const dy = handLandmarks[tip].y - palm.y;
@@ -23,13 +24,44 @@ function getFistState(handLandmarks) {
 }
 
 async function init() {
-    // Setup camera 
-    const video = await setupCamera();
-    console.log("Cam ready", video);
+    const setStepState = (id, state) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove("active", "done");
+        if (state === "active") el.classList.add("active");
+        if (state === "done") el.classList.add("done");
+    };
 
-    // Setup MediaPipe Hand Tracking
-    await setupHandTracking();
-    console.log("Hand tracking ready");
+    // Begin concurrent setup
+    setStepState("step-camera", "active");
+    setStepState("step-vision", "active");
+    setStepState("step-audio", "active");
+
+    const cameraPromise = setupCamera().then((video) => {
+        console.log("Cam ready", video);
+        setStepState("step-camera", "done");
+        return video;
+    });
+
+    const visionPromise = setupHandTracking().then(() => {
+        console.log("Hand tracking ready");
+        setStepState("step-vision", "done");
+    });
+
+    const audioPromise = Tone.loaded().then(() => {
+        console.log("Acoustic samples loaded!");
+        setStepState("step-audio", "done");
+    });
+
+    // Await all components concurrently
+    const [video] = await Promise.all([cameraPromise, visionPromise, audioPromise]);
+
+    // Fade out and clean up preloader UI
+    const preloader = document.getElementById("preloader");
+    if (preloader) {
+        preloader.classList.add("fade-out");
+        setTimeout(() => preloader.remove(), 600);
+    }
 
     // Setup canvas 
     const { canvas, ctx } = setupCanvas(video);
@@ -37,17 +69,18 @@ async function init() {
 
     let hoverTimer = null;
     let hoveredIndex = null;
-    
+
     // Strum & Interaction State
     let lastStrumTime = 0;
     let lastRightHandY = 0;
     let isSustaining = false;
+    let lastSustainedChordIndex = null;
     let flashOpacity = 0;
 
     // Dashboard Updates
     function updateDashboard() {
         document.getElementById("capo-display").textContent = appState.capo;
-        
+
         // Update relative/absolute chord view toggle text
         const toggleBtn = document.getElementById("chord-mode-toggle");
         if (toggleBtn) {
@@ -104,7 +137,7 @@ async function init() {
         appState.gridScale = scale;
         document.getElementById("size-display").textContent = Math.round(scale * 100) + "%";
     }, { passive: false });
-    
+
     updateDashboard();
 
     // Hover debounce logic
@@ -125,10 +158,11 @@ async function init() {
             hoverTimer = setTimeout(() => {
                 appState.activeChordIndex = hoveredIndex;
                 updateDashboard();
-                
+
                 // Synth Mode: instantly switch sound if we are currently sustaining with an open hand
                 if (isSustaining) {
-                    startSustainedChord(chords[hoveredIndex], appState.capo);
+                    startIndefiniteSustain(chords[hoveredIndex], appState.capo);
+                    lastSustainedChordIndex = hoveredIndex;
                 }
             }, CONFIG.HOVER_DELAY_MS);
         } else {
@@ -149,7 +183,7 @@ async function init() {
         const rect = canvas.getBoundingClientRect();
         const canvasRatio = canvas.width / canvas.height;
         const rectRatio = rect.width / rect.height;
-        
+
         let renderWidth, renderHeight, offsetX, offsetY;
 
         if (canvasRatio > rectRatio) {
@@ -204,15 +238,15 @@ async function init() {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
         }
-        
+
         // Render mirrored video, boxes, and strum line
         renderbox(video, ctx, canvas, flashOpacity);
-        
+
         const result = detectHands(video);
-        
+
         if (result && result.landmarks && result.landmarks.length > 0) {
             drawLandmarks(ctx, canvas, result);
-            
+
             let leftHand = null;
             let rightHand = null;
 
@@ -237,7 +271,7 @@ async function init() {
             if (rightHand) {
                 const state = getFistState(rightHand);
                 const isFistClosed = state === "CLOSED";
-                
+
                 // Compute average Y coordinate of right hand landmarks for high-accuracy velocity tracking
                 let currentHandY = 0;
                 for (let pt of rightHand) {
@@ -248,35 +282,66 @@ async function init() {
                 // Update Dashboard State
                 document.getElementById("state-display").textContent = isFistClosed ? "Fade (Closed)" : "Sustain (Open)";
 
-                // Detect Downstrum based on downward vertical velocity
                 const now = Date.now();
                 const dy = currentHandY - lastRightHandY;
 
-                if (lastRightHandY > 0 && dy > CONFIG.STRUM_VELOCITY_THRESHOLD) {
-                    if (now - lastStrumTime > CONFIG.STRUM_COOLDOWN_MS) {
-                        lastStrumTime = now;
-                        flashOpacity = 1.0; 
-                        
+                // 1. Continuous Sustain Trigger Logic
+                if (!isFistClosed) {
+                    // Sustain mode is active
+                    if (!isSustaining || appState.activeChordIndex !== lastSustainedChordIndex) {
+                        isSustaining = true;
                         if (appState.activeChordIndex !== null) {
-                            if (isFistClosed) {
-                                playFadedChord(chords[appState.activeChordIndex], appState.capo);
-                                isSustaining = false;
-                            } else {
-                                startSustainedChord(chords[appState.activeChordIndex], appState.capo);
-                                isSustaining = true;
-                            }
+                            startIndefiniteSustain(chords[appState.activeChordIndex], appState.capo);
+                            lastSustainedChordIndex = appState.activeChordIndex;
+                        } else {
+                            killAll();
+                            lastSustainedChordIndex = null;
+                        }
+                    }
+                } else {
+                    // Closed fist (Fade mode)
+                    if (isSustaining) {
+                        // Just transitioned from Sustain (Open) to Fade (Closed)
+                        isSustaining = false;
+                        lastSustainedChordIndex = null;
+                        if (appState.activeChordIndex !== null) {
+                            playFadedChord(chords[appState.activeChordIndex], appState.capo);
+                        } else {
+                            killAll();
                         }
                     }
                 }
-                
-                // If hand was open (sustaining) and now closes -> trigger fade out release
-                if (isSustaining && isFistClosed) {
-                    isSustaining = false;
-                    killAll(); 
+
+                // 2. Active Downstrum Detection (only in closed fist / fade mode)
+                if (isFistClosed && lastRightHandY > 0 && dy > CONFIG.STRUM_VELOCITY_THRESHOLD) {
+                    if (now - lastStrumTime > CONFIG.STRUM_COOLDOWN_MS) {
+                        lastStrumTime = now;
+                        flashOpacity = 1.0;
+
+                        // Instant commitment: Bypass hover delay on active strum
+                        if (hoveredIndex !== null && appState.activeChordIndex !== hoveredIndex) {
+                            if (hoverTimer) {
+                                clearTimeout(hoverTimer);
+                                hoverTimer = null;
+                            }
+                            appState.activeChordIndex = hoveredIndex;
+                            updateDashboard();
+                        }
+
+                        if (appState.activeChordIndex !== null) {
+                            playFadedChord(chords[appState.activeChordIndex], appState.capo);
+                        }
+                    }
                 }
 
                 lastRightHandY = currentHandY;
             } else {
+                // If right hand is lost/out of frame, turn off sustain
+                if (isSustaining) {
+                    isSustaining = false;
+                    lastSustainedChordIndex = null;
+                    killAll();
+                }
                 lastRightHandY = 0;
             }
         }

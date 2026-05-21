@@ -10,6 +10,28 @@
 
 
 <body>
+  <!-- Minimalist dark preloader -->
+  <div id="preloader">
+    <div class="preloader-content">
+      <div class="preloader-title">FreeStrum</div>
+      <div class="preloader-subtitle">Initializing System</div>
+      <div class="preloader-steps">
+        <div class="step" id="step-camera">
+          <span class="step-dot"></span>
+          <span class="step-text">Connecting Webcam</span>
+        </div>
+        <div class="step" id="step-vision">
+          <span class="step-dot"></span>
+          <span class="step-text">Loading Hand Tracking AI</span>
+        </div>
+        <div class="step" id="step-audio">
+          <span class="step-dot"></span>
+          <span class="step-text">Buffering Guitar Strings</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="app">
     <!-- The camera video feed, mirror canvas, and UI elements will be loaded here -->
     <video id="webcam" autoplay playsinline></video>

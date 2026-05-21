@@ -62,7 +62,7 @@ export const guitarSynth = new Tone.Sampler({
         'D5': 'D5.mp3',
         'D#2': 'Ds2.mp3',
         'D#3': 'Ds3.mp3',
-        'D#4': 'Ds3.mp3',
+        'D#4': 'Ds4.mp3',
         'E2': 'E2.mp3',
         'E3': 'E3.mp3',
         'E4': 'E4.mp3',
@@ -70,7 +70,7 @@ export const guitarSynth = new Tone.Sampler({
         'F3': 'F3.mp3'
     },
     release: 1, // Base release, overridden dynamically during muting
-    baseUrl: "https://nbrosowsky.github.io/tonejs-instruments/samples/guitar-acoustic/",
+    baseUrl: "/samples/guitar-acoustic/",
     onload: () => {
         isAudioReady = true;
         console.log("Acoustic Guitar Samples Loaded!");
@@ -81,6 +81,21 @@ export const guitarSynth = new Tone.Sampler({
 guitarSynth.chain(eq, chorus, reverb, Tone.Destination);
 
 guitarSynth.volume.value = 0;
+
+// 3. The Infinite Sustain Pad Synthesizer
+export const sustainPad = new Tone.PolySynth(Tone.Synth, {
+    oscillator: {
+        type: "triangle" // Warm, organic acoustic-like drone hum
+    },
+    envelope: {
+        attack: 0.2,   // Gentle swell
+        decay: 0.1,
+        sustain: 1.0,  // Indefinite sustain! Will not fade!
+        release: 0.6   // Smooth release
+    }
+}).chain(eq, chorus, reverb, Tone.Destination);
+
+sustainPad.volume.value = -10; // Drone blended subtly behind the lead
 
 // Automatically resume/start AudioContext on very first user click or keydown
 if (typeof window !== "undefined") {
@@ -123,33 +138,46 @@ export function buildChordNotes(chord, capo = 0) {
 }
 
 let activeNotes = [];
+let activeSustainNotes = [];
 
 // The Continuous Choke Trigger (Fist Mute)
 export function killAll() {
-    if (!isAudioReady || activeNotes.length === 0) return;
-    try {
-        // Apply a sharp, fractional volume clamp to actively sustaining channels
-        guitarSynth.triggerRelease(activeNotes, `+${CONFIG.CHOKE_RELEASE_TIME}`);
-    } catch (e) {
-        console.error("Error in release:", e);
+    if (!isAudioReady) return;
+    
+    if (activeNotes.length > 0) {
+        try {
+            // Apply a sharp, fractional volume clamp to actively sustaining channels
+            guitarSynth.triggerRelease(activeNotes, `+${CONFIG.CHOKE_RELEASE_TIME}`);
+        } catch (e) {
+            console.error("Error in release:", e);
+        }
+        activeNotes = [];
     }
-    activeNotes = [];
+    
+    stopIndefiniteSustain();
 }
 
-// Used for OPEN fist (Sustain)
-export function startSustainedChord(chord, capo = 0) {
+export function startIndefiniteSustain(chord, capo = 0) {
     if (!isAudioReady) return;
-    killAll();
+    
+    stopIndefiniteSustain();
+    
     const notes = buildChordNotes(chord, capo);
-    console.log("Sustaining acoustic notes:", notes);
+    console.log("Sustaining infinite hum pad notes:", notes);
     
-    // Spread the strum slightly to mimic human finger sweep
-    const now = Tone.now();
-    notes.forEach((note, i) => {
-        guitarSynth.triggerAttack(note, now + (i * 0.025)); 
-    });
-    
-    activeNotes = notes;
+    sustainPad.triggerAttack(notes);
+    activeSustainNotes = notes;
+}
+
+export function stopIndefiniteSustain() {
+    if (activeSustainNotes.length > 0) {
+        try {
+            sustainPad.triggerRelease(activeSustainNotes);
+        } catch (e) {
+            console.error("Error in sustain release:", e);
+        }
+        activeSustainNotes = [];
+    }
 }
 
 // Used for CLOSED fist (Fade/Normal Strum)
