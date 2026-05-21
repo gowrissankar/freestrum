@@ -26,6 +26,11 @@ export const CONFIG = {
     // Strum Velocity Threshold (Y delta in normalized coordinate per frame to trigger strum)
     STRUM_VELOCITY_THRESHOLD: 0.05,
 
+    // Audio Engine Tuning
+    FADE_STRUM_DURATION: 2.5, // Natural acoustic ring out time
+    CHOKE_RELEASE_TIME: 0.1,  // Sharp dampening time for fist mute
+    REVERB_DECAY_TIME: 1.5,   // Room ambient decay simulation
+
     // Fist Detection Threshold (Distance from palm to fingertips)
     // If average distance is below this, the fist is considered "CLOSED"
     // Values are typically between 0.1 and 0.4 based on MediaPipe normalized coords
