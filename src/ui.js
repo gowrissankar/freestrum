@@ -28,42 +28,19 @@ export function renderFrame(video, ctx, canvas) {
 }
 
 
-export const chords = [
-    { note: 0, quality: "maj", active: false }, // C
-    { note: 7, quality: "maj", active: false }, // G
-    { note: 9, quality: "min", active: false }, // Am
-    { note: 5, quality: "maj", active: false }, // F
-
-    { note: 2, quality: "min", active: false }, // Dm
-    { note: 4, quality: "min", active: false }, // Em
-    { note: 9, quality: "maj", active: false }, // A
-    { note: 4, quality: "maj", active: false }  // E
-];
-
-// semitone → note names // mapping ot numbers 
-export const NOTE_NAMES = [
-    "C", "C#", "D", "D#", "E", "F",
-    "F#", "G", "G#", "A", "A#", "B"
-];
-
-
-export const appState = {
-    capo: 0,
-    activeChordIndex: null
-};
+import { chords, NOTE_NAMES, appState } from './state';
 
 
 //=========layout===========
 const gridConfig = {
-    cols: 4,
+    cols: 5,
     rows: 2,
-    gap: 12,
+    gap: 0,
 
-    xPercent: 0.05,
-    yPercent: 0.65,
-    widthPercent: 0.40,
-    heightPercent: 0.22
-
+    xPercent: 0.1,
+    yPercent: 0.5,
+    widthPercent: 0.8,
+    heightPercent: 0.3
 };
 
 export function drawCapoLabel(ctx, boxes) {
@@ -121,10 +98,10 @@ export function generateChordBoxes(canvas) {
     } = gridConfig;
 
     const regionX =
-        canvas.width * xPercent;
+        canvas.width * xPercent + (appState.gridOffset?.x || 0);
 
     const regionY =
-        canvas.height * yPercent;
+        canvas.height * yPercent + (appState.gridOffset?.y || 0);
 
     const regionW =
         canvas.width * widthPercent;
@@ -178,17 +155,13 @@ export function drawChordGrid(ctx, boxes) {
             box.index ===
             appState.activeChordIndex;
 
-        ctx.strokeStyle =
-            isActive ? "lime" : "white";
+        // Sleek cyan wireframe UI
+        ctx.strokeStyle = isActive ? "rgba(0, 229, 255, 1)" : "rgba(0, 229, 255, 0.5)";
+        ctx.fillStyle = isActive ? "rgba(0, 229, 255, 0.3)" : "rgba(0, 0, 0, 0.4)";
 
-        ctx.fillStyle = "white";
-
-        ctx.strokeRect(
-            box.x,
-            box.y,
-            box.w,
-            box.h
-        );
+        // Square boxes touching each other
+        ctx.fillRect(box.x, box.y, box.w, box.h);
+        ctx.strokeRect(box.x, box.y, box.w, box.h);
 
         const label =
             getChordLabel(
@@ -196,6 +169,8 @@ export function drawChordGrid(ctx, boxes) {
                 appState.capo
             );
 
+        ctx.fillStyle = isActive ? "#ffffff" : "rgba(255, 255, 255, 0.9)";
+        
         ctx.fillText(
             label,
             box.x + box.w / 2,
@@ -244,3 +219,73 @@ export function renderbox(
 }
 
 
+
+//===========collision det==========
+export function getBoxAtPosition(x, y, boxes) {
+    for (const box of boxes) {
+        const insideX =
+            x >= box.x &&
+            x <= box.x + box.w;
+
+        const insideY =
+            y >= box.y &&
+            y <= box.y + box.h;
+
+        if (insideX && insideY) {
+            return box;
+        }
+    }
+
+    return null;
+}
+
+
+
+
+const HAND_CONNECTIONS = [
+    [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
+    [0, 5], [5, 6], [6, 7], [7, 8], // Index
+    [5, 9], [9, 10], [10, 11], [11, 12], // Middle
+    [9, 13], [13, 14], [14, 15], [15, 16], // Ring
+    [13, 17], [0, 17], [17, 18], [18, 19], [19, 20] // Pinky
+];
+
+export function drawLandmarks(
+    ctx,
+    canvas,
+    result
+) {
+    if (!result) return;
+
+    ctx.fillStyle = "#ff6b6b";
+    ctx.strokeStyle = "#ff6b6b";
+    ctx.lineWidth = 2;
+
+    for (const hand of result.landmarks) {
+        // Draw connections (skeleton)
+        for (const [i, j] of HAND_CONNECTIONS) {
+            const p1 = hand[i];
+            const p2 = hand[j];
+
+            const x1 = (1 - p1.x) * canvas.width;
+            const y1 = p1.y * canvas.height;
+            const x2 = (1 - p2.x) * canvas.width;
+            const y2 = p2.y * canvas.height;
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        // Draw points
+        for (const point of hand) {
+            const x = (1 - point.x) * canvas.width;
+            const y = point.y * canvas.height;
+
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+}

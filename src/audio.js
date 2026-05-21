@@ -1,7 +1,7 @@
 // audio.js - Tone.js guitar chord polyphonic audio engine
 
 import * as Tone from "tone"
-import { NOTE_NAMES } from "./ui"
+import { NOTE_NAMES } from "./state"
 
 // A gorgeous, highly-audible polyphonic pluck synth using Tone.Synth
 export const guitarSynth = new Tone.PolySynth(Tone.Synth, {
@@ -11,8 +11,8 @@ export const guitarSynth = new Tone.PolySynth(Tone.Synth, {
     envelope: {
         attack: 0.005,
         decay: 0.1,
-        sustain: 0.2,
-        release: 1.2
+        sustain: 0.8, // Increased sustain to hold the chord
+        release: 0.5  // Smoother release when switching chords
     }
 }).toDestination();
 
@@ -65,10 +65,23 @@ export function buildChordNotes(chord, capo = 0) {
     );
 }
 
-export function playChord(chord, capo = 0) {
-    const notes = buildChordNotes(chord, capo);
-    console.log("Strumming notes:", notes);
+let activeNotes = [];
+
+export function startChord(chord, capo = 0) {
+    if (activeNotes.length > 0) {
+        guitarSynth.triggerRelease(activeNotes);
+    }
     
-    // Trigger the sound synchronously in the user-event callstack
-    guitarSynth.triggerAttackRelease(notes, "8n");
+    const notes = buildChordNotes(chord, capo);
+    console.log("Starting chord notes:", notes);
+    
+    guitarSynth.triggerAttack(notes);
+    activeNotes = notes;
+}
+
+export function stopChord() {
+    if (activeNotes.length > 0) {
+        guitarSynth.triggerRelease(activeNotes);
+        activeNotes = [];
+    }
 }
