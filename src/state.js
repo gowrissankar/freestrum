@@ -23,5 +23,7 @@ export const chords = [
 export const appState = {
     capo: 0,
     activeChordIndex: null,
-    gridOffset: { x: 0, y: 0 } // Used for draggable UI
+    gridOffset: { x: 0, y: 0 }, // Used for draggable UI
+    gridScale: 1.0,
+    showTransposed: false
 };

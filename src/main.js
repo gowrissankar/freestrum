@@ -38,15 +38,22 @@ async function init() {
     let hoverTimer = null;
     let hoveredIndex = null;
     
-    // Strum State
-    let lastStrumY = 0;
+    // Strum & Interaction State
     let lastStrumTime = 0;
+    let lastRightHandY = 0;
     let isSustaining = false;
     let flashOpacity = 0;
 
     // Dashboard Updates
     function updateDashboard() {
         document.getElementById("capo-display").textContent = appState.capo;
+        
+        // Update relative/absolute chord view toggle text
+        const toggleBtn = document.getElementById("chord-mode-toggle");
+        if (toggleBtn) {
+            toggleBtn.textContent = appState.showTransposed ? "Show: Transposed" : "Show: Original";
+        }
+
         if (appState.activeChordIndex !== null) {
             const chord = chords[appState.activeChordIndex];
             const shiftedNote = (chord.note + appState.capo) % 12;
@@ -66,6 +73,37 @@ async function init() {
         appState.capo = (appState.capo - 1 + 12) % 12;
         updateDashboard();
     });
+
+    // Cape chords view toggler
+    document.getElementById("chord-mode-toggle").addEventListener("click", () => {
+        appState.showTransposed = !appState.showTransposed;
+        updateDashboard();
+    });
+
+    // Table Grid Resizing Listeners
+    document.getElementById("size-up").addEventListener("click", () => {
+        appState.gridScale = Math.min(2.0, (appState.gridScale || 1.0) + 0.1);
+        document.getElementById("size-display").textContent = Math.round(appState.gridScale * 100) + "%";
+    });
+
+    document.getElementById("size-down").addEventListener("click", () => {
+        appState.gridScale = Math.max(0.4, (appState.gridScale || 1.0) - 0.1);
+        document.getElementById("size-display").textContent = Math.round(appState.gridScale * 100) + "%";
+    });
+
+    // Slick mouse wheel zooming directly on canvas
+    canvas.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const scaleStep = 0.05;
+        let scale = appState.gridScale || 1.0;
+        if (e.deltaY < 0) {
+            scale = Math.min(2.0, scale + scaleStep);
+        } else {
+            scale = Math.max(0.4, scale - scaleStep);
+        }
+        appState.gridScale = scale;
+        document.getElementById("size-display").textContent = Math.round(scale * 100) + "%";
+    }, { passive: false });
     
     updateDashboard();
 
@@ -79,6 +117,9 @@ async function init() {
         }
 
         hoveredIndex = newHoveredIndex;
+
+        // Immediately kill any active sounds on chord switch to eliminate overlaps / buildup
+        killAll();
 
         if (hoveredIndex !== null) {
             hoverTimer = setTimeout(() => {
@@ -94,7 +135,6 @@ async function init() {
             hoverTimer = setTimeout(() => {
                 appState.activeChordIndex = null;
                 updateDashboard();
-                killAll(); // Stop sound if we leave the grid completely
             }, CONFIG.HOVER_DELAY_MS);
         }
     }
@@ -197,14 +237,22 @@ async function init() {
             if (rightHand) {
                 const state = getFistState(rightHand);
                 const isFistClosed = state === "CLOSED";
-                const rightHandY = rightHand[0].y; // Palm Y coordinate
+                
+                // Compute average Y coordinate of right hand landmarks for high-accuracy velocity tracking
+                let currentHandY = 0;
+                for (let pt of rightHand) {
+                    currentHandY += pt.y;
+                }
+                currentHandY /= rightHand.length;
 
                 // Update Dashboard State
                 document.getElementById("state-display").textContent = isFistClosed ? "Fade (Closed)" : "Sustain (Open)";
 
-                // Detect Downstrum
+                // Detect Downstrum based on downward vertical velocity
                 const now = Date.now();
-                if (lastStrumY < CONFIG.STRUM_LINE_Y && rightHandY >= CONFIG.STRUM_LINE_Y) {
+                const dy = currentHandY - lastRightHandY;
+
+                if (lastRightHandY > 0 && dy > CONFIG.STRUM_VELOCITY_THRESHOLD) {
                     if (now - lastStrumTime > CONFIG.STRUM_COOLDOWN_MS) {
                         lastStrumTime = now;
                         flashOpacity = 1.0; 
@@ -227,7 +275,9 @@ async function init() {
                     killAll(); 
                 }
 
-                lastStrumY = rightHandY;
+                lastRightHandY = currentHandY;
+            } else {
+                lastRightHandY = 0;
             }
         }
 

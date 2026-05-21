@@ -67,6 +67,8 @@ export function generateChordBoxes(canvas) {
         GRID_HEIGHT_PERCENT: heightPercent
     } = CONFIG;
 
+    const scale = appState.gridScale || 1.0;
+
     const regionX =
         canvas.width * xPercent + (appState.gridOffset?.x || 0);
 
@@ -74,10 +76,10 @@ export function generateChordBoxes(canvas) {
         canvas.height * yPercent + (appState.gridOffset?.y || 0);
 
     const regionW =
-        canvas.width * widthPercent;
+        canvas.width * widthPercent * scale;
 
     const regionH =
-        canvas.height * heightPercent;
+        canvas.height * heightPercent * scale;
 
     const cellW =
         (regionW - gap * (cols - 1)) / cols;
@@ -136,7 +138,7 @@ export function drawChordGrid(ctx, boxes) {
         const label =
             getChordLabel(
                 box,
-                appState.capo
+                appState.showTransposed ? appState.capo : 0
             );
 
         ctx.fillStyle = isActive ? "#ffffff" : "rgba(255, 255, 255, 0.9)";
@@ -148,29 +150,6 @@ export function drawChordGrid(ctx, boxes) {
         );
     }
 }
-
-export function drawStrumLine(ctx, canvas, flashOpacity) {
-    const y = canvas.height * CONFIG.STRUM_LINE_Y;
-    
-    // Draw base line
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
-    ctx.strokeStyle = CONFIG.COLOR_STRUM_LINE;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Draw flash
-    if (flashOpacity > 0) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${flashOpacity})`;
-        ctx.lineWidth = 6;
-        ctx.stroke();
-    }
-}
-
 
 //============box render=============
 export function renderbox(
@@ -207,7 +186,12 @@ export function renderbox(
     const boxes = generateChordBoxes(canvas);
 
     drawChordGrid(ctx, boxes);
-    drawStrumLine(ctx, canvas, flashOpacity);
+
+    // Premium subtle full-screen flash effect on strum
+    if (flashOpacity > 0) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${flashOpacity * 0.18})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 }
 
 

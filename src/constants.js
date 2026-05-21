@@ -20,11 +20,11 @@ export const CONFIG = {
     COLOR_STRUM_FLASH: "rgba(255, 255, 255, 0.9)",
 
     // Timing and Interactions
-    HOVER_DELAY_MS: 250,
+    HOVER_DELAY_MS: 150,
     STRUM_COOLDOWN_MS: 300,
 
-    // Strum Line Position (Y-axis percentage, 0.0 to 1.0)
-    STRUM_LINE_Y: 0.65,
+    // Strum Velocity Threshold (Y delta in normalized coordinate per frame to trigger strum)
+    STRUM_VELOCITY_THRESHOLD: 0.05,
 
     // Fist Detection Threshold (Distance from palm to fingertips)
     // If average distance is below this, the fist is considered "CLOSED"

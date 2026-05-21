@@ -68,10 +68,12 @@ export function buildChordNotes(chord, capo = 0) {
 let activeNotes = [];
 
 export function killAll() {
-    if (activeNotes.length > 0) {
-        guitarSynth.triggerRelease(activeNotes);
-        activeNotes = [];
+    try {
+        guitarSynth.releaseAll();
+    } catch (e) {
+        console.error("Error in releaseAll:", e);
     }
+    activeNotes = [];
 }
 
 // Used for OPEN fist (Sustain)
@@ -90,6 +92,7 @@ export function playFadedChord(chord, capo = 0) {
     console.log("Strumming and fading notes:", notes);
     // 1n means it will hold for a whole note duration then release naturally
     guitarSynth.triggerAttackRelease(notes, "1n");
+    activeNotes = notes;
 }
 
 export function stopChord() {
