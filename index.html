@@ -15,7 +15,29 @@
     <video id="webcam" autoplay playsinline></video>
     <canvas id="overlay"> </canvas>
 
+    <!-- Dashboard Panel -->
+    <div id="dashboard">
+      <div class="panel-section">
+        <button id="capo-down">-</button>
+        <div class="center" style="align-items: flex-start">
+          <span class="label">Capo</span>
+          <span class="value" id="capo-display">0</span>
+        </div>
+        <button id="capo-up">+</button>
+      </div>
 
+      <div class="panel-section center">
+        <span class="label">Current Chord</span>
+        <span class="value highlight" id="chord-display">--</span>
+      </div>
+
+      <div class="panel-section right">
+        <div class="center" style="align-items: flex-end">
+          <span class="label">Right Hand State</span>
+          <span class="value" id="state-display">Rest</span>
+        </div>
+      </div>
+    </div>
 
   </div>
   <script type="module" src="./src/main.js"></script>

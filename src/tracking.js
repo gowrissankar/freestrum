@@ -19,7 +19,11 @@ export async function setupCamera() {
     const video = document.getElementById("webcam");
 
     const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            aspectRatio: { ideal: 1.7777777778 }
+        },
         audio: false
     });
 

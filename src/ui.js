@@ -29,39 +29,9 @@ export function renderFrame(video, ctx, canvas) {
 
 
 import { chords, NOTE_NAMES, appState } from './state';
+import { CONFIG } from './constants';
 
 
-//=========layout===========
-const gridConfig = {
-    cols: 5,
-    rows: 2,
-    gap: 0,
-
-    xPercent: 0.1,
-    yPercent: 0.5,
-    widthPercent: 0.8,
-    heightPercent: 0.3
-};
-
-export function drawCapoLabel(ctx, boxes) {
-    if (boxes.length === 0) return;
-
-    const lastBox = boxes[boxes.length - 1];
-
-    const gridBottom =
-        lastBox.y + lastBox.h;
-
-    ctx.fillStyle = "white";
-    ctx.font = "22px sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-
-    ctx.fillText(
-        `Capo: ${appState.capo}`,
-        boxes[0].x,
-        gridBottom + 20
-    );
-}
 
 //========= UI label ==========
 function getChordLabel(chord, capo) {
@@ -88,14 +58,14 @@ export function generateChordBoxes(canvas) {
     const boxes = [];
 
     const {
-        cols,
-        rows,
-        gap,
-        xPercent,
-        yPercent,
-        widthPercent,
-        heightPercent
-    } = gridConfig;
+        GRID_COLS: cols,
+        GRID_ROWS: rows,
+        GRID_GAP: gap,
+        GRID_X_PERCENT: xPercent,
+        GRID_Y_PERCENT: yPercent,
+        GRID_WIDTH_PERCENT: widthPercent,
+        GRID_HEIGHT_PERCENT: heightPercent
+    } = CONFIG;
 
     const regionX =
         canvas.width * xPercent + (appState.gridOffset?.x || 0);
@@ -156,8 +126,8 @@ export function drawChordGrid(ctx, boxes) {
             appState.activeChordIndex;
 
         // Sleek cyan wireframe UI
-        ctx.strokeStyle = isActive ? "rgba(0, 229, 255, 1)" : "rgba(0, 229, 255, 0.5)";
-        ctx.fillStyle = isActive ? "rgba(0, 229, 255, 0.3)" : "rgba(0, 0, 0, 0.4)";
+        ctx.strokeStyle = isActive ? CONFIG.COLOR_GRID_ACTIVE_BORDER : CONFIG.COLOR_GRID_INACTIVE_BORDER;
+        ctx.fillStyle = isActive ? CONFIG.COLOR_GRID_ACTIVE_BG : CONFIG.COLOR_GRID_INACTIVE_BG;
 
         // Square boxes touching each other
         ctx.fillRect(box.x, box.y, box.w, box.h);
@@ -179,12 +149,35 @@ export function drawChordGrid(ctx, boxes) {
     }
 }
 
+export function drawStrumLine(ctx, canvas, flashOpacity) {
+    const y = canvas.height * CONFIG.STRUM_LINE_Y;
+    
+    // Draw base line
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.strokeStyle = CONFIG.COLOR_STRUM_LINE;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Draw flash
+    if (flashOpacity > 0) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${flashOpacity})`;
+        ctx.lineWidth = 6;
+        ctx.stroke();
+    }
+}
+
 
 //============box render=============
 export function renderbox(
     video,
     ctx,
-    canvas
+    canvas,
+    flashOpacity = 0
 ) {
     ctx.clearRect(
         0,
@@ -214,8 +207,7 @@ export function renderbox(
     const boxes = generateChordBoxes(canvas);
 
     drawChordGrid(ctx, boxes);
-    drawCapoLabel(ctx, boxes);
-
+    drawStrumLine(ctx, canvas, flashOpacity);
 }
 
 
@@ -257,8 +249,8 @@ export function drawLandmarks(
 ) {
     if (!result) return;
 
-    ctx.fillStyle = "#ff6b6b";
-    ctx.strokeStyle = "#ff6b6b";
+    ctx.fillStyle = CONFIG.COLOR_SKELETON;
+    ctx.strokeStyle = CONFIG.COLOR_SKELETON;
     ctx.lineWidth = 2;
 
     for (const hand of result.landmarks) {

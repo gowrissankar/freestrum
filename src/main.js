@@ -4,8 +4,23 @@ console.log('FreeStrum Initialized!');
 import './style.css'
 import { setupCamera, detectHands, setupHandTracking } from './tracking';
 import { renderbox, setupCanvas, generateChordBoxes, getBoxAtPosition, drawLandmarks } from './ui';
-import { startChord, stopChord } from "./audio";
-import { appState, chords } from "./state";
+import { startSustainedChord, playFadedChord, killAll } from "./audio";
+import { appState, chords, NOTE_NAMES } from "./state";
+import { CONFIG } from "./constants";
+
+function getFistState(handLandmarks) {
+    const palm = handLandmarks[0];
+    const tips = [8, 12, 16, 20];
+    let totalDist = 0;
+    
+    for (let tip of tips) {
+        const dx = handLandmarks[tip].x - palm.x;
+        const dy = handLandmarks[tip].y - palm.y;
+        totalDist += Math.sqrt(dx * dx + dy * dy);
+    }
+    const avgDist = totalDist / 4;
+    return avgDist < CONFIG.FIST_THRESHOLD ? "CLOSED" : "OPEN";
+}
 
 async function init() {
     // Setup camera 
@@ -22,13 +37,42 @@ async function init() {
 
     let hoverTimer = null;
     let hoveredIndex = null;
-    const HOVER_DELAY_MS = 250;
+    
+    // Strum State
+    let lastStrumY = 0;
+    let lastStrumTime = 0;
+    let isSustaining = false;
+    let flashOpacity = 0;
+
+    // Dashboard Updates
+    function updateDashboard() {
+        document.getElementById("capo-display").textContent = appState.capo;
+        if (appState.activeChordIndex !== null) {
+            const chord = chords[appState.activeChordIndex];
+            const shiftedNote = (chord.note + appState.capo) % 12;
+            const suffixMap = { maj: "", min: "m", "7": "7" };
+            document.getElementById("chord-display").textContent = NOTE_NAMES[shiftedNote] + suffixMap[chord.quality];
+        } else {
+            document.getElementById("chord-display").textContent = "--";
+        }
+    }
+
+    document.getElementById("capo-up").addEventListener("click", () => {
+        appState.capo = (appState.capo + 1) % 12;
+        updateDashboard();
+    });
+
+    document.getElementById("capo-down").addEventListener("click", () => {
+        appState.capo = (appState.capo - 1 + 12) % 12;
+        updateDashboard();
+    });
+    
+    updateDashboard();
 
     // Hover debounce logic
     function handleHoverChange(newHoveredIndex) {
         if (hoveredIndex === newHoveredIndex) return;
 
-        // Clear existing timer if moving to a different box
         if (hoverTimer) {
             clearTimeout(hoverTimer);
             hoverTimer = null;
@@ -37,17 +81,21 @@ async function init() {
         hoveredIndex = newHoveredIndex;
 
         if (hoveredIndex !== null) {
-            // Start timer for the new chord
             hoverTimer = setTimeout(() => {
                 appState.activeChordIndex = hoveredIndex;
-                startChord(chords[hoveredIndex], appState.capo);
-            }, HOVER_DELAY_MS);
+                updateDashboard();
+                
+                // Synth Mode: instantly switch sound if we are currently sustaining with an open hand
+                if (isSustaining) {
+                    startSustainedChord(chords[hoveredIndex], appState.capo);
+                }
+            }, CONFIG.HOVER_DELAY_MS);
         } else {
-            // If moved outside any box, stop playing after a short delay
             hoverTimer = setTimeout(() => {
                 appState.activeChordIndex = null;
-                stopChord();
-            }, HOVER_DELAY_MS);
+                updateDashboard();
+                killAll(); // Stop sound if we leave the grid completely
+            }, CONFIG.HOVER_DELAY_MS);
         }
     }
 
@@ -64,16 +112,18 @@ async function init() {
         
         let renderWidth, renderHeight, offsetX, offsetY;
 
-        if (rectRatio > canvasRatio) {
-            renderHeight = rect.height;
-            renderWidth = renderHeight * canvasRatio;
-            offsetX = (rect.width - renderWidth) / 2;
-            offsetY = 0;
-        } else {
+        if (canvasRatio > rectRatio) {
+            // object-fit contain scales to fit width, letterboxing top/bottom
             renderWidth = rect.width;
             renderHeight = renderWidth / canvasRatio;
             offsetX = 0;
             offsetY = (rect.height - renderHeight) / 2;
+        } else {
+            // object-fit contain scales to fit height, pillarboxing sides
+            renderHeight = rect.height;
+            renderWidth = renderHeight * canvasRatio;
+            offsetX = (rect.width - renderWidth) / 2;
+            offsetY = 0;
         }
 
         const mouseX = (e.clientX - rect.left - offsetX) * (canvas.width / renderWidth);
@@ -84,15 +134,10 @@ async function init() {
 
     canvas.addEventListener("mousedown", (e) => {
         const { mouseX, mouseY } = getCanvasPos(e, canvas);
-        const boxes = generateChordBoxes(canvas);
-        const hitBox = getBoxAtPosition(mouseX, mouseY, boxes);
-
-        if (hitBox || true) { // Allow dragging from anywhere for now
-            isDragging = true;
-            dragStartX = mouseX;
-            dragStartY = mouseY;
-            initialOffset = { ...appState.gridOffset };
-        }
+        isDragging = true;
+        dragStartX = mouseX;
+        dragStartY = mouseY;
+        initialOffset = { ...appState.gridOffset };
     });
 
     canvas.addEventListener("mouseup", () => {
@@ -105,7 +150,7 @@ async function init() {
         if (isDragging) {
             appState.gridOffset.x = initialOffset.x + (mouseX - dragStartX);
             appState.gridOffset.y = initialOffset.y + (mouseY - dragStartY);
-            return; // Pause hover sounds while moving the grid
+            return;
         }
 
         const boxes = generateChordBoxes(canvas);
@@ -114,56 +159,80 @@ async function init() {
         handleHoverChange(hitBox ? hitBox.index : null);
     });
 
-    // Keyboard support for testing chords
-    window.addEventListener("keydown", (e) => {
-        const key = Number(e.key);
-        if (key >= 1 && key <= 8) {
-            const index = key - 1;
-            appState.activeChordIndex = index;
-            startChord(chords[index], appState.capo);
-        }
-    });
-
-    window.addEventListener("keyup", (e) => {
-        const key = Number(e.key);
-        if (key >= 1 && key <= 8) {
-            // Only stop if the lifted key matches the active chord
-            if (appState.activeChordIndex === key - 1) {
-                appState.activeChordIndex = null;
-                stopChord();
-            }
-        }
-    });
-
     function animate() {
-        // Dynamically resize canvas
         if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
         }
         
-        // Render mirrored video and boxes
-        renderbox(video, ctx, canvas);
+        // Render mirrored video, boxes, and strum line
+        renderbox(video, ctx, canvas, flashOpacity);
         
-        // Run hand detection
         const result = detectHands(video);
         
-        // If hands are detected
         if (result && result.landmarks && result.landmarks.length > 0) {
             drawLandmarks(ctx, canvas, result);
             
-            // Track the index finger tip (landmark 8) of the first detected hand
-            const indexFinger = result.landmarks[0][8];
-            
-            // Mirror the X coordinate because the canvas is mirrored horizontally
-            const pointerX = (1 - indexFinger.x) * canvas.width;
-            const pointerY = indexFinger.y * canvas.height;
-            
-            const boxes = generateChordBoxes(canvas);
-            const hitBox = getBoxAtPosition(pointerX, pointerY, boxes);
-            
-            handleHoverChange(hitBox ? hitBox.index : null);
+            let leftHand = null;
+            let rightHand = null;
+
+            // Differentiate left and right hand based on mirrored screen X coordinate
+            for (const hand of result.landmarks) {
+                const palmX = (1 - hand[0].x);
+                if (palmX < 0.5 && !leftHand) leftHand = hand;
+                else if (palmX >= 0.5 && !rightHand) rightHand = hand;
+            }
+
+            // Left Hand: Chord Selection
+            if (leftHand) {
+                const indexFinger = leftHand[8];
+                const pointerX = (1 - indexFinger.x) * canvas.width;
+                const pointerY = indexFinger.y * canvas.height;
+                const boxes = generateChordBoxes(canvas);
+                const hitBox = getBoxAtPosition(pointerX, pointerY, boxes);
+                handleHoverChange(hitBox ? hitBox.index : null);
+            }
+
+            // Right Hand: Strumming & Synth State
+            if (rightHand) {
+                const state = getFistState(rightHand);
+                const isFistClosed = state === "CLOSED";
+                const rightHandY = rightHand[0].y; // Palm Y coordinate
+
+                // Update Dashboard State
+                document.getElementById("state-display").textContent = isFistClosed ? "Fade (Closed)" : "Sustain (Open)";
+
+                // Detect Downstrum
+                const now = Date.now();
+                if (lastStrumY < CONFIG.STRUM_LINE_Y && rightHandY >= CONFIG.STRUM_LINE_Y) {
+                    if (now - lastStrumTime > CONFIG.STRUM_COOLDOWN_MS) {
+                        lastStrumTime = now;
+                        flashOpacity = 1.0; 
+                        
+                        if (appState.activeChordIndex !== null) {
+                            if (isFistClosed) {
+                                playFadedChord(chords[appState.activeChordIndex], appState.capo);
+                                isSustaining = false;
+                            } else {
+                                startSustainedChord(chords[appState.activeChordIndex], appState.capo);
+                                isSustaining = true;
+                            }
+                        }
+                    }
+                }
+                
+                // If hand was open (sustaining) and now closes -> trigger fade out release
+                if (isSustaining && isFistClosed) {
+                    isSustaining = false;
+                    killAll(); 
+                }
+
+                lastStrumY = rightHandY;
+            }
         }
+
+        // Decay flash opacity
+        if (flashOpacity > 0) flashOpacity = Math.max(0, flashOpacity - 0.05);
 
         requestAnimationFrame(animate);
     }

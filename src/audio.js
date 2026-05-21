@@ -67,21 +67,31 @@ export function buildChordNotes(chord, capo = 0) {
 
 let activeNotes = [];
 
-export function startChord(chord, capo = 0) {
-    if (activeNotes.length > 0) {
-        guitarSynth.triggerRelease(activeNotes);
-    }
-    
-    const notes = buildChordNotes(chord, capo);
-    console.log("Starting chord notes:", notes);
-    
-    guitarSynth.triggerAttack(notes);
-    activeNotes = notes;
-}
-
-export function stopChord() {
+export function killAll() {
     if (activeNotes.length > 0) {
         guitarSynth.triggerRelease(activeNotes);
         activeNotes = [];
     }
+}
+
+// Used for OPEN fist (Sustain)
+export function startSustainedChord(chord, capo = 0) {
+    killAll();
+    const notes = buildChordNotes(chord, capo);
+    console.log("Sustaining notes:", notes);
+    guitarSynth.triggerAttack(notes);
+    activeNotes = notes;
+}
+
+// Used for CLOSED fist (Fade/Normal Strum)
+export function playFadedChord(chord, capo = 0) {
+    killAll();
+    const notes = buildChordNotes(chord, capo);
+    console.log("Strumming and fading notes:", notes);
+    // 1n means it will hold for a whole note duration then release naturally
+    guitarSynth.triggerAttackRelease(notes, "1n");
+}
+
+export function stopChord() {
+    killAll();
 }
