@@ -3,7 +3,8 @@ console.log('FreeStrum Initialized!');
 
 import './style.css'
 import { setupCamera } from './tracking';
-import { renderbox, setupCanvas, appState } from './ui';
+import { renderbox, setupCanvas, appState, chords } from './ui';
+import { playChord } from "./audio";
 
 async function init() {
     //setup cam 
@@ -18,7 +19,10 @@ async function init() {
         const key = Number(e.key);
 
         if (key >= 1 && key <= 8) {
-            appState.activeChordIndex = key - 1;
+            const index = key - 1;
+            appState.activeChordIndex = index;
+
+            playChord(chords[index], appState.capo)
         }
     });
 

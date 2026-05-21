@@ -26,5 +26,12 @@ canvas {
 }
 
 video {
-  object-fit: cover;
+  /* Keep the video active for streaming, but hide it visually so the unmirrored feed doesn't leak */
+  opacity: 0;
+  pointer-events: none;
+}
+
+canvas {
+  /* Preserves aspect ratio, fits to screen without stretching, and centers itself */
+  object-fit: contain;
 }
