@@ -5,9 +5,11 @@
 }
 
 body {
-  background: #111;
+  background: #000000;
   overflow: hidden;
-  font-family: sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #app {
@@ -43,9 +45,8 @@ canvas {
   left: 0;
   width: 100%;
   height: 80px;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  background: #0c0c0e; /* Pure premium solid dark background */
+  border-top: 1px solid #1a1a1f; /* Sleek, precise border */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -71,24 +72,24 @@ canvas {
 }
 
 .label {
-  font-size: 12px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #aaa;
+  letter-spacing: 1.5px;
+  color: #77777a;
 }
 
 .value {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 22px;
+  font-weight: 500;
 }
 
 button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: white;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: 4px; /* Crisp square boxes */
   cursor: pointer;
   font-size: 18px;
   display: flex;
@@ -98,11 +99,12 @@ button {
 }
 
 button:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .highlight {
-  color: #00e5ff;
+  color: #ffffff; /* Sleek high-contrast white */
 }
 
 /* Minimalist Dark Preloader styling */
@@ -174,7 +176,7 @@ button:hover {
 }
 
 .step.done {
-  color: #00e5ff;
+  color: #ffffff;
 }
 
 .step-dot {
@@ -191,7 +193,7 @@ button:hover {
 }
 
 .step.done .step-dot {
-  box-shadow: 0 0 8px #00e5ff;
+  box-shadow: 0 0 8px #ffffff;
 }
 
 @keyframes pulse-title {

@@ -5,22 +5,22 @@ export const CONFIG = {
     GRID_COLS: 5,
     GRID_ROWS: 2,
     GRID_GAP: 0,
-    GRID_X_PERCENT: 0.1,
-    GRID_Y_PERCENT: 0.5,
+    GRID_X_PERCENT: 0.02,
+    GRID_Y_PERCENT: 0.55,
     GRID_WIDTH_PERCENT: 0.8,
     GRID_HEIGHT_PERCENT: 0.3,
 
     // Colors
-    COLOR_GRID_ACTIVE_BORDER: "rgba(0, 229, 255, 1)",
-    COLOR_GRID_INACTIVE_BORDER: "rgba(0, 229, 255, 0.5)",
-    COLOR_GRID_ACTIVE_BG: "rgba(0, 229, 255, 0.3)",
-    COLOR_GRID_INACTIVE_BG: "rgba(0, 0, 0, 0.4)",
-    COLOR_SKELETON: "#ff6b6b",
-    COLOR_STRUM_LINE: "rgba(255, 200, 0, 0.8)",
-    COLOR_STRUM_FLASH: "rgba(255, 255, 255, 0.9)",
+    COLOR_GRID_ACTIVE_BORDER: "rgba(255, 255, 255, 0.95)",
+    COLOR_GRID_INACTIVE_BORDER: "rgba(255, 255, 255, 0.15)",
+    COLOR_GRID_ACTIVE_BG: "rgba(255, 255, 255, 0.12)",
+    COLOR_GRID_INACTIVE_BG: "rgba(10, 10, 10, 0.15)", // Highly transparent background
+    COLOR_SKELETON: "rgba(255, 255, 255, 0.3)",
+    COLOR_STRUM_LINE: "rgba(255, 255, 255, 0.5)",
+    COLOR_STRUM_FLASH: "rgba(255, 255, 255, 0.15)",
 
     // Timing and Interactions
-    HOVER_DELAY_MS: 50,
+    HOVER_DELAY_MS: 100,
     STRUM_COOLDOWN_MS: 300,
 
     // Strum Velocity Threshold (Y delta in normalized coordinate per frame to trigger strum)
@@ -37,7 +37,7 @@ export const CONFIG = {
     FIST_THRESHOLD: 0.2,
 
     // Infinite Sustain Oscillator Tuning
-    SUSTAIN_VOLUME: 0.15,         // Volume level (0.0 to 1.0) for the infinite sustain oscillators
+    SUSTAIN_VOLUME: 0.65,         // Volume level (0.0 to 1.0) for the infinite sustain oscillators
     SUSTAIN_RELEASE_TIME: 0.25,   // Fade out duration in seconds when releasing sustain
     SUSTAIN_WAVEFORM: "triangle"  // Waveform type ("sine", "triangle", "square", "sawtooth")
 };

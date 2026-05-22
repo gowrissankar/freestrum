@@ -87,6 +87,12 @@ async function init() {
             toggleBtn.textContent = appState.showTransposed ? "Show: Transposed" : "Show: Original";
         }
 
+        // Update grid size display
+        const sizeDisplay = document.getElementById("size-display");
+        if (sizeDisplay) {
+            sizeDisplay.textContent = Math.round((appState.gridScale || 1.0) * 100) + "%";
+        }
+
         if (appState.activeChordIndex !== null) {
             const chord = chords[appState.activeChordIndex];
             const shiftedNote = (chord.note + appState.capo) % 12;
@@ -244,11 +250,11 @@ async function init() {
 
         const result = detectHands(video);
 
+        let leftHand = null;
+        let rightHand = null;
+
         if (result && result.landmarks && result.landmarks.length > 0) {
             drawLandmarks(ctx, canvas, result);
-
-            let leftHand = null;
-            let rightHand = null;
 
             // Differentiate left and right hand based on mirrored screen X coordinate
             for (const hand of result.landmarks) {
@@ -266,84 +272,83 @@ async function init() {
                 const hitBox = getBoxAtPosition(pointerX, pointerY, boxes);
                 handleHoverChange(hitBox ? hitBox.index : null);
             }
+        }
 
-            // Right Hand: Strumming & Synth State
-            if (rightHand) {
-                const state = getFistState(rightHand);
-                const isFistClosed = state === "CLOSED";
+        // Right Hand: Strumming & Synth State
+        if (rightHand) {
+            const state = getFistState(rightHand);
+            const isFistClosed = state === "CLOSED";
 
-                // Compute average Y coordinate of right hand landmarks for high-accuracy velocity tracking
-                let currentHandY = 0;
-                for (let pt of rightHand) {
-                    currentHandY += pt.y;
-                }
-                currentHandY /= rightHand.length;
+            // Compute average Y coordinate of right hand landmarks for high-accuracy velocity tracking
+            let currentHandY = 0;
+            for (let pt of rightHand) {
+                currentHandY += pt.y;
+            }
+            currentHandY /= rightHand.length;
 
-                // Update Dashboard State
-                document.getElementById("state-display").textContent = isFistClosed ? "Fade (Closed)" : "Sustain (Open)";
+            // Update Dashboard State
+            document.getElementById("state-display").textContent = isFistClosed ? "Fade" : "Sustain";
 
-                const now = Date.now();
-                const dy = currentHandY - lastRightHandY;
+            const now = Date.now();
+            const dy = currentHandY - lastRightHandY;
 
-                // 1. Continuous Sustain Trigger Logic
-                if (!isFistClosed) {
-                    // Sustain mode is active
-                    if (!isSustaining || appState.activeChordIndex !== lastSustainedChordIndex) {
-                        isSustaining = true;
-                        if (appState.activeChordIndex !== null) {
-                            startAbsoluteSustain(chords[appState.activeChordIndex], appState.capo);
-                            lastSustainedChordIndex = appState.activeChordIndex;
-                        } else {
-                            killAll();
-                            lastSustainedChordIndex = null;
-                        }
-                    }
-                } else {
-                    // Closed fist (Fade mode)
-                    if (isSustaining) {
-                        // Just transitioned from Sustain (Open) to Fade (Closed)
-                        isSustaining = false;
+            // 1. Continuous Sustain Trigger Logic
+            if (!isFistClosed) {
+                // Sustain mode is active
+                if (!isSustaining || appState.activeChordIndex !== lastSustainedChordIndex) {
+                    isSustaining = true;
+                    if (appState.activeChordIndex !== null) {
+                        startAbsoluteSustain(chords[appState.activeChordIndex], appState.capo);
+                        lastSustainedChordIndex = appState.activeChordIndex;
+                    } else {
+                        killAll();
                         lastSustainedChordIndex = null;
-                        if (appState.activeChordIndex !== null) {
-                            playFadedChord(chords[appState.activeChordIndex], appState.capo);
-                        } else {
-                            killAll();
-                        }
                     }
                 }
-
-                // 2. Active Downstrum Detection (only in closed fist / fade mode)
-                if (isFistClosed && lastRightHandY > 0 && dy > CONFIG.STRUM_VELOCITY_THRESHOLD) {
-                    if (now - lastStrumTime > CONFIG.STRUM_COOLDOWN_MS) {
-                        lastStrumTime = now;
-                        flashOpacity = 1.0;
-
-                        // Instant commitment: Bypass hover delay on active strum
-                        if (hoveredIndex !== null && appState.activeChordIndex !== hoveredIndex) {
-                            if (hoverTimer) {
-                                clearTimeout(hoverTimer);
-                                hoverTimer = null;
-                            }
-                            appState.activeChordIndex = hoveredIndex;
-                            updateDashboard();
-                        }
-
-                        if (appState.activeChordIndex !== null) {
-                            playFadedChord(chords[appState.activeChordIndex], appState.capo);
-                        }
-                    }
-                }
-
-                lastRightHandY = currentHandY;
             } else {
-                // If right hand is lost/out of frame, turn off sustain
+                // Closed fist (Fade mode)
                 if (isSustaining) {
+                    // Just transitioned from Sustain (Open) to Fade (Closed) -> Kill sound immediately
                     isSustaining = false;
                     lastSustainedChordIndex = null;
                     killAll();
                 }
-                lastRightHandY = 0;
             }
+
+            // 2. Active Downstrum Detection (only in closed fist / fade mode)
+            if (isFistClosed && lastRightHandY > 0 && dy > CONFIG.STRUM_VELOCITY_THRESHOLD) {
+                if (now - lastStrumTime > CONFIG.STRUM_COOLDOWN_MS) {
+                    lastStrumTime = now;
+                    flashOpacity = 1.0;
+
+                    // Instant commitment: Bypass hover delay on active strum
+                    if (hoveredIndex !== null && appState.activeChordIndex !== hoveredIndex) {
+                        if (hoverTimer) {
+                            clearTimeout(hoverTimer);
+                            hoverTimer = null;
+                        }
+                        appState.activeChordIndex = hoveredIndex;
+                        updateDashboard();
+                    }
+
+                    if (appState.activeChordIndex !== null) {
+                        playFadedChord(chords[appState.activeChordIndex], appState.capo);
+                    }
+                }
+            }
+
+            lastRightHandY = currentHandY;
+        } else {
+            // Update Dashboard State when hand is missing/undetected
+            document.getElementById("state-display").textContent = "Undetected";
+
+            // If right hand is lost/out of frame, turn off sustain
+            if (isSustaining) {
+                isSustaining = false;
+                lastSustainedChordIndex = null;
+                killAll();
+            }
+            lastRightHandY = 0;
         }
 
         // Decay flash opacity

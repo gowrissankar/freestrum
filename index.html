@@ -41,23 +41,23 @@
     <div id="dashboard">
       <div class="panel-section" style="gap: 15px; flex: 1.5;">
         <button id="capo-down">-</button>
-        <div class="center" style="align-items: flex-start; min-width: 50px;">
-          <span class="label">Capo</span>
+        <div class="center" style="align-items: center; min-width: 50px;">
           <span class="value" id="capo-display">0</span>
+          <span class="label" style="margin-top: 2px;">Capo</span>
         </div>
         <button id="capo-up">+</button>
 
         <!-- Relative/Absolute Toggle Button -->
-        <button id="chord-mode-toggle" style="width: auto; border-radius: 20px; padding: 0 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-left: 10px;">
+        <button id="chord-mode-toggle" style="width: auto; border-radius: 4px; padding: 0 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-left: 10px;">
           Show: Original
         </button>
 
         <!-- Table Size Controls -->
         <div style="display: flex; align-items: center; gap: 8px; margin-left: 10px;">
           <button id="size-down">-</button>
-          <div class="center" style="align-items: flex-start; min-width: 60px;">
-            <span class="label">Grid Size</span>
-            <span class="value" id="size-display">100%</span>
+          <div class="center" style="align-items: center; min-width: 60px;">
+            <span class="value" id="size-display">50%</span>
+            <span class="label" style="margin-top: 2px;">Grid Size</span>
           </div>
           <button id="size-up">+</button>
         </div>
@@ -70,8 +70,7 @@
 
       <div class="panel-section right">
         <div class="center" style="align-items: flex-end">
-          <span class="label">Right Hand State</span>
-          <span class="value" id="state-display">Rest</span>
+          <span class="value" id="state-display">Undetected</span>
         </div>
       </div>
     </div>

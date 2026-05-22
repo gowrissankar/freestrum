@@ -88,11 +88,11 @@ export function generateChordBoxes(canvas) {
         (regionH - gap * (rows - 1)) / rows;
 
     for (let i = 0; i < chords.length; i++) {
-        const row =
-            Math.floor(i / cols);
-
-        const col =
-            i % cols;
+        // Zig-zag priority layout: columns populated left-to-right, row 0 then row 1 per column:
+        // 1 3 5 7 9
+        // 2 4 6 8 10
+        const col = Math.floor(i / 2);
+        const row = i % 2;
 
         boxes.push({
             ...chords[i],
@@ -118,7 +118,7 @@ export function generateChordBoxes(canvas) {
 //=========chord grid===========
 export function drawChordGrid(ctx, boxes) {
     ctx.lineWidth = 2;
-    ctx.font = "20px sans-serif";
+    ctx.font = "500 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
