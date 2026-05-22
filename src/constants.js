@@ -20,7 +20,7 @@ export const CONFIG = {
     COLOR_STRUM_FLASH: "rgba(255, 255, 255, 0.9)",
 
     // Timing and Interactions
-    HOVER_DELAY_MS: 150,
+    HOVER_DELAY_MS: 50,
     STRUM_COOLDOWN_MS: 300,
 
     // Strum Velocity Threshold (Y delta in normalized coordinate per frame to trigger strum)
@@ -34,5 +34,10 @@ export const CONFIG = {
     // Fist Detection Threshold (Distance from palm to fingertips)
     // If average distance is below this, the fist is considered "CLOSED"
     // Values are typically between 0.1 and 0.4 based on MediaPipe normalized coords
-    FIST_THRESHOLD: 0.2
+    FIST_THRESHOLD: 0.2,
+
+    // Infinite Sustain Oscillator Tuning
+    SUSTAIN_VOLUME: 0.15,         // Volume level (0.0 to 1.0) for the infinite sustain oscillators
+    SUSTAIN_RELEASE_TIME: 0.25,   // Fade out duration in seconds when releasing sustain
+    SUSTAIN_WAVEFORM: "triangle"  // Waveform type ("sine", "triangle", "square", "sawtooth")
 };

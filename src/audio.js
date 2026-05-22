@@ -82,20 +82,8 @@ guitarSynth.chain(eq, chorus, reverb, Tone.Destination);
 
 guitarSynth.volume.value = 0;
 
-// 3. The Infinite Sustain Pad Synthesizer
-export const sustainPad = new Tone.PolySynth(Tone.Synth, {
-    oscillator: {
-        type: "triangle" // Warm, organic acoustic-like drone hum
-    },
-    envelope: {
-        attack: 0.2,   // Gentle swell
-        decay: 0.1,
-        sustain: 1.0,  // Indefinite sustain! Will not fade!
-        release: 0.6   // Smooth release
-    }
-}).chain(eq, chorus, reverb, Tone.Destination);
-
-sustainPad.volume.value = -10; // Drone blended subtly behind the lead
+// 3. The Infinite Sustain Oscillator System
+let activeSustainSessions = []; // Array of active { gainNode, oscillators }
 
 // Automatically resume/start AudioContext on very first user click or keydown
 if (typeof window !== "undefined") {
@@ -138,7 +126,6 @@ export function buildChordNotes(chord, capo = 0) {
 }
 
 let activeNotes = [];
-let activeSustainNotes = [];
 
 // The Continuous Choke Trigger (Fist Mute)
 export function killAll() {
@@ -154,30 +141,78 @@ export function killAll() {
         activeNotes = [];
     }
     
-    stopIndefiniteSustain();
+    stopAbsoluteSustain();
 }
 
-export function startIndefiniteSustain(chord, capo = 0) {
+export function startAbsoluteSustain(chord, capo = 0) {
     if (!isAudioReady) return;
     
-    stopIndefiniteSustain();
+    // Smoothly fade out all existing active sessions
+    stopAbsoluteSustain();
     
+    const now = Tone.now();
     const notes = buildChordNotes(chord, capo);
-    console.log("Sustaining infinite hum pad notes:", notes);
+    console.log("Absolute sustain starting for notes:", notes);
     
-    sustainPad.triggerAttack(notes);
-    activeSustainNotes = notes;
+    // Create a new gain node for this session
+    const gainNode = new Tone.Gain(0.0).chain(eq, chorus, reverb, Tone.Destination);
+    
+    // Smooth fade-in to prevent sharp clicks
+    gainNode.gain.setValueAtTime(0.0, now);
+    gainNode.gain.linearRampToValueAtTime(CONFIG.SUSTAIN_VOLUME || 0.15, now + 0.1);
+    
+    const oscillators = notes.map(note => {
+        const osc = new Tone.Oscillator({
+            frequency: note,
+            type: CONFIG.SUSTAIN_WAVEFORM || "triangle"
+        }).connect(gainNode);
+        
+        osc.start(now);
+        return osc;
+    });
+    
+    activeSustainSessions.push({ gainNode, oscillators });
 }
 
-export function stopIndefiniteSustain() {
-    if (activeSustainNotes.length > 0) {
+export function stopAbsoluteSustain() {
+    if (activeSustainSessions.length === 0) return;
+    
+    const now = Tone.now();
+    const fadeTime = CONFIG.SUSTAIN_RELEASE_TIME || 0.25;
+    
+    // Fade out and dispose all current sessions
+    activeSustainSessions.forEach(session => {
+        const { gainNode, oscillators } = session;
+        
         try {
-            sustainPad.triggerRelease(activeSustainNotes);
+            gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+            gainNode.gain.linearRampToValueAtTime(0.0, now + fadeTime);
+            
+            oscillators.forEach(osc => {
+                try {
+                    osc.stop(now + fadeTime);
+                } catch (e) {
+                    console.error("Error stopping oscillator:", e);
+                }
+            });
+            
+            // Clean up resources after fade out has completed
+            setTimeout(() => {
+                oscillators.forEach(osc => {
+                    try {
+                        osc.disconnect();
+                    } catch (e) {}
+                });
+                try {
+                    gainNode.disconnect();
+                } catch (e) {}
+            }, (fadeTime + 0.2) * 1000);
         } catch (e) {
-            console.error("Error in sustain release:", e);
+            console.error("Error disposing sustain session:", e);
         }
-        activeSustainNotes = [];
-    }
+    });
+    
+    activeSustainSessions = [];
 }
 
 // Used for CLOSED fist (Fade/Normal Strum)

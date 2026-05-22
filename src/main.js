@@ -4,7 +4,7 @@ console.log('FreeStrum Initialized!');
 import './style.css'
 import { setupCamera, detectHands, setupHandTracking } from './tracking';
 import { renderbox, setupCanvas, generateChordBoxes, getBoxAtPosition, drawLandmarks } from './ui';
-import { startIndefiniteSustain, playFadedChord, killAll } from "./audio";
+import { startAbsoluteSustain, playFadedChord, killAll } from "./audio";
 import { appState, chords, NOTE_NAMES } from "./state";
 import { CONFIG } from "./constants";
 import * as Tone from "tone";
@@ -161,7 +161,7 @@ async function init() {
 
                 // Synth Mode: instantly switch sound if we are currently sustaining with an open hand
                 if (isSustaining) {
-                    startIndefiniteSustain(chords[hoveredIndex], appState.capo);
+                    startAbsoluteSustain(chords[hoveredIndex], appState.capo);
                     lastSustainedChordIndex = hoveredIndex;
                 }
             }, CONFIG.HOVER_DELAY_MS);
@@ -291,7 +291,7 @@ async function init() {
                     if (!isSustaining || appState.activeChordIndex !== lastSustainedChordIndex) {
                         isSustaining = true;
                         if (appState.activeChordIndex !== null) {
-                            startIndefiniteSustain(chords[appState.activeChordIndex], appState.capo);
+                            startAbsoluteSustain(chords[appState.activeChordIndex], appState.capo);
                             lastSustainedChordIndex = appState.activeChordIndex;
                         } else {
                             killAll();
