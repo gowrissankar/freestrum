@@ -24,7 +24,7 @@ export const CONFIG = {
     STRUM_COOLDOWN_MS: 300,
 
     // Strum Velocity Threshold (Y delta in normalized coordinate per frame to trigger strum)
-    STRUM_VELOCITY_THRESHOLD: 0.05,
+    STRUM_VELOCITY_THRESHOLD: 0.03,
 
     // Audio Engine Tuning
     FADE_STRUM_DURATION: 2.5, // Natural acoustic ring out time

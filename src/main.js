@@ -212,6 +212,12 @@ async function init() {
         return { mouseX, mouseY };
     }
 
+    function getTouchCanvasPos(e, canvas) {
+        if (!e.touches || e.touches.length === 0) return { mouseX: 0, mouseY: 0 };
+        const touch = e.touches[0];
+        return getCanvasPos({ clientX: touch.clientX, clientY: touch.clientY }, canvas);
+    }
+
     canvas.addEventListener("mousedown", (e) => {
         const { mouseX, mouseY } = getCanvasPos(e, canvas);
         isDragging = true;
@@ -238,6 +244,31 @@ async function init() {
 
         handleHoverChange(hitBox ? hitBox.index : null);
     });
+
+    // Touch event listeners for mobile/tablet drag-and-drop
+    canvas.addEventListener("touchstart", (e) => {
+        if (e.touches.length === 1) {
+            const { mouseX, mouseY } = getTouchCanvasPos(e, canvas);
+            isDragging = true;
+            dragStartX = mouseX;
+            dragStartY = mouseY;
+            initialOffset = { ...appState.gridOffset };
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    canvas.addEventListener("touchend", () => {
+        isDragging = false;
+    });
+
+    canvas.addEventListener("touchmove", (e) => {
+        if (isDragging && e.touches.length === 1) {
+            const { mouseX, mouseY } = getTouchCanvasPos(e, canvas);
+            appState.gridOffset.x = initialOffset.x + (mouseX - dragStartX);
+            appState.gridOffset.y = initialOffset.y + (mouseY - dragStartY);
+            e.preventDefault();
+        }
+    }, { passive: false });
 
     function animate() {
         if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {

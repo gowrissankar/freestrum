@@ -33,9 +33,11 @@
   </div>
 
   <div id="app">
-    <!-- The camera video feed, mirror canvas, and UI elements will be loaded here -->
-    <video id="webcam" autoplay playsinline></video>
-    <canvas id="overlay"> </canvas>
+    <!-- Camera Viewport Container -->
+    <div id="camera-viewport">
+      <video id="webcam" autoplay playsinline></video>
+      <canvas id="overlay"> </canvas>
+    </div>
 
     <!-- Dashboard Panel -->
     <div id="dashboard">
@@ -72,6 +74,17 @@
         <div class="center" style="align-items: flex-end">
           <span class="value" id="state-display">Undetected</span>
         </div>
+      </div>
+    </div>
+
+    <!-- Portrait Orientation Overlay -->
+    <div id="rotate-overlay">
+      <div class="rotate-content">
+        <div class="rotate-device-animation">
+          <div class="phone-outline"></div>
+        </div>
+        <div class="rotate-title">Please Rotate Device</div>
+        <div class="rotate-subtitle">Landscape orientation is required for air-guitar hand tracking</div>
       </div>
     </div>
 
