@@ -6,6 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FreeStrum </title>
   <link rel="stylesheet" href="./src/style.css">
+  <!-- Vercel Web Analytics Dynamic Injection -->
+  <script>
+    (function () {
+      const script = document.createElement('script');
+      script.src = '/_vercel/insights/script.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  </script>
 </head>
 
 
@@ -50,7 +59,8 @@
         <button id="capo-up">+</button>
 
         <!-- Relative/Absolute Toggle Button -->
-        <button id="chord-mode-toggle" style="width: auto; border-radius: 4px; padding: 0 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-left: 10px;">
+        <button id="chord-mode-toggle"
+          style="width: auto; border-radius: 4px; padding: 0 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-left: 10px;">
           Show: Original
         </button>
 
