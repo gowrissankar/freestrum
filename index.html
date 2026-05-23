@@ -42,6 +42,18 @@
   </div>
 
   <div id="app">
+    <!-- Top Header Dashboard -->
+    <div id="top-dashboard">
+      <div class="header-status">
+        <span class="status-dot" id="left-hand-status">○</span>
+        <span class="header-label">(L) chords</span>
+      </div>
+      <div class="header-status">
+        <span class="header-label">strum (R)</span>
+        <span class="status-dot" id="right-hand-status" style="margin-left: 8px; margin-right: 0;">○</span>
+      </div>
+    </div>
+
     <!-- Camera Viewport Container -->
     <div id="camera-viewport">
       <video id="webcam" autoplay playsinline muted></video>
@@ -50,38 +62,48 @@
 
     <!-- Dashboard Panel -->
     <div id="dashboard">
-      <div class="panel-section" style="gap: 15px; flex: 1.5;">
-        <button id="capo-down">-</button>
-        <div class="center" style="align-items: center; min-width: 50px;">
-          <span class="value" id="capo-display">0</span>
-          <span class="label" style="margin-top: 2px;">Capo</span>
-        </div>
-        <button id="capo-up">+</button>
-
-        <!-- Relative/Absolute Toggle Button -->
-        <button id="chord-mode-toggle"
-          style="width: auto; border-radius: 4px; padding: 0 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-left: 10px;">
-          Show: Original
-        </button>
-
+      <!-- Left Panel: Grid Size, Capo, and ? Help Button -->
+      <div class="panel-section" style="gap: 10px; flex: 1.8;">
         <!-- Table Size Controls -->
-        <div style="display: flex; align-items: center; gap: 8px; margin-left: 10px;">
+        <div class="control-capsule">
           <button id="size-down">-</button>
-          <div class="center" style="align-items: center; min-width: 60px;">
+          <div class="capsule-display" style="min-width: 60px;">
             <span class="value" id="size-display">50%</span>
-            <span class="label" style="margin-top: 2px;">Grid Size</span>
+            <span class="label">Grid Size</span>
           </div>
           <button id="size-up">+</button>
         </div>
+
+        <!-- Capo control capsule -->
+        <div class="control-capsule">
+          <button id="capo-down">-</button>
+          <div class="capsule-display" style="min-width: 50px;">
+            <span class="value" id="capo-display">0</span>
+            <span class="label">Capo</span>
+          </div>
+          <button id="capo-up">+</button>
+        </div>
+
+        <!-- Info Toggle Button -->
+        <button id="info-toggle" class="info-toggle-button" style="margin-left: 5px;">i</button>
       </div>
 
+      <!-- Center Panel: Chord Display -->
       <div class="panel-section center">
         <span class="label">Current Chord</span>
         <span class="value highlight" id="chord-display">--</span>
       </div>
 
-      <div class="panel-section right">
-        <div class="center" style="align-items: flex-end">
+      <!-- Right Panel: Original Toggle & Hand Detection -->
+      <div class="panel-section right" style="gap: 15px; flex: 1.5;">
+        <!-- Relative/Absolute Toggle Button -->
+        <button id="chord-mode-toggle" class="borderless-toggle">
+          <span class="toggle-dot" id="toggle-status-dot">○</span>
+          <span class="toggle-text">Original</span>
+        </button>
+
+        <div id="detection-status-container" class="center">
+          <span class="label" style="margin-bottom: 2px;">Detection</span>
           <span class="value" id="state-display">Undetected</span>
         </div>
       </div>
@@ -95,6 +117,45 @@
         </div>
         <div class="rotate-title">Please Rotate Device</div>
         <div class="rotate-subtitle">Landscape orientation is required for air-guitar hand tracking</div>
+      </div>
+    </div>
+
+    <!-- User Instruction Overlay (Split Preloader-Themed Minimalist Guide) -->
+    <div id="instruction-overlay">
+      <div class="instruction-grid-minimal">
+        
+        <!-- Left Column -->
+        <div class="instruction-col-minimal left">
+          <div class="instruction-title">Left Hand</div>
+          <div class="instruction-steps">
+            <div class="instruction-step">
+              <span class="step-dot"></span>
+              <span class="step-text"><span class="step-highlight">Chords</span> &bull; Use left index finger to select chords</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="instruction-col-minimal right">
+          <div class="instruction-title">Right Hand</div>
+          <div class="instruction-steps">
+            <div class="instruction-step">
+              <span class="step-dot"></span>
+              <span class="step-text"><span class="step-highlight">Strum</span> &bull; Make a FIST and move your hand down</span>
+            </div>
+            <div class="instruction-step">
+              <span class="step-dot"></span>
+              <span class="step-text"><span class="step-highlight">Sustain</span> &bull; Keep your hand OPEN to sustain</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Floating Capo Instruction (Styled identically, no box, bottom-left) -->
+      <div class="capo-instruction-floating">
+        <span class="step-dot" style="box-shadow: 0 0 8px #ffffff; background: #ffffff;"></span>
+        <span class="step-text" style="margin-left: 12px;">use capo to transpose</span>
       </div>
     </div>
 

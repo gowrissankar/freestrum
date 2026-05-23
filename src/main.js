@@ -60,7 +60,50 @@ async function init() {
     const preloader = document.getElementById("preloader");
     if (preloader) {
         preloader.classList.add("fade-out");
-        setTimeout(() => preloader.remove(), 600);
+        setTimeout(() => {
+            try { preloader.remove(); } catch(e) {}
+            
+            // Show instruction overlay ONLY AFTER preloader is completely faded out and removed!
+            const overlay = document.getElementById("instruction-overlay");
+            if (overlay) {
+                overlay.style.display = "flex";
+                // Force browser reflow to trigger CSS opacity transitions
+                void overlay.offsetWidth;
+                overlay.style.opacity = "1";
+                overlay.style.visibility = "visible";
+            }
+        }, 600);
+    }
+
+    // Setup interactive instruction overlay dismissal
+    const overlay = document.getElementById("instruction-overlay");
+    if (overlay) {
+        const dismissOverlay = (e) => {
+            if (e) e.preventDefault();
+            overlay.classList.add("hidden");
+            // Proactively trigger Tone.start() on user touch/click gesture
+            Tone.start().catch((err) => console.log("Audio activation deferred:", err));
+        };
+        overlay.addEventListener("click", dismissOverlay);
+        overlay.addEventListener("touchstart", dismissOverlay, { passive: false });
+    }
+
+    // Setup interactive help info toggle button
+    const infoToggle = document.getElementById("info-toggle");
+    if (infoToggle && overlay) {
+        const showOverlay = (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation(); // Prevent immediate close bubbling
+            }
+            overlay.classList.remove("hidden");
+            overlay.style.display = "flex";
+            void overlay.offsetWidth;
+            overlay.style.opacity = "1";
+            overlay.style.visibility = "visible";
+        };
+        infoToggle.addEventListener("click", showOverlay);
+        infoToggle.addEventListener("touchstart", showOverlay, { passive: false });
     }
 
     // Setup canvas 
@@ -81,10 +124,25 @@ async function init() {
     function updateDashboard() {
         document.getElementById("capo-display").textContent = appState.capo;
 
-        // Update relative/absolute chord view toggle text
+        // Update relative/absolute chord view toggle text and dot
         const toggleBtn = document.getElementById("chord-mode-toggle");
         if (toggleBtn) {
-            toggleBtn.textContent = appState.showTransposed ? "Show: Transposed" : "Show: Original";
+            const dot = document.getElementById("toggle-status-dot");
+            const txt = toggleBtn.querySelector(".toggle-text");
+            
+            if (dot && txt) {
+                if (appState.showTransposed) {
+                    dot.textContent = "●";
+                    dot.classList.add("active");
+                    txt.textContent = "Transposed";
+                } else {
+                    dot.textContent = "○";
+                    dot.classList.remove("active");
+                    txt.textContent = "Original";
+                }
+            } else {
+                toggleBtn.textContent = appState.showTransposed ? "Show: Transposed" : "Show: Original";
+            }
         }
 
         // Update grid size display
@@ -380,6 +438,30 @@ async function init() {
                 killAll();
             }
             lastRightHandY = 0;
+        }
+
+        // Dynamically toggle hand detection visual indicator states in the header (○ to ●)
+        const leftDot = document.getElementById("left-hand-status");
+        const rightDot = document.getElementById("right-hand-status");
+        
+        if (leftDot) {
+            if (leftHand) {
+                leftDot.classList.add("active");
+                leftDot.textContent = "●";
+            } else {
+                leftDot.classList.remove("active");
+                leftDot.textContent = "○";
+            }
+        }
+        
+        if (rightDot) {
+            if (rightHand) {
+                rightDot.classList.add("active");
+                rightDot.textContent = "●";
+            } else {
+                rightDot.classList.remove("active");
+                rightDot.textContent = "○";
+            }
         }
 
         // Decay flash opacity
