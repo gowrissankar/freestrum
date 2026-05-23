@@ -85,16 +85,18 @@ guitarSynth.volume.value = 0;
 // 3. The Infinite Sustain Oscillator System
 let activeSustainSessions = []; // Array of active { gainNode, oscillators }
 
-// Automatically resume/start AudioContext on very first user click or keydown
+// Automatically resume/start AudioContext on very first user click, keydown, or touchstart
 if (typeof window !== "undefined") {
     const resumeAudio = async () => {
         await Tone.start();
         console.log("Tone.js AudioContext active!");
         window.removeEventListener("click", resumeAudio);
         window.removeEventListener("keydown", resumeAudio);
+        window.removeEventListener("touchstart", resumeAudio);
     };
     window.addEventListener("click", resumeAudio);
     window.addEventListener("keydown", resumeAudio);
+    window.addEventListener("touchstart", resumeAudio, { passive: true });
 }
 
 function getIntervals(quality) {
